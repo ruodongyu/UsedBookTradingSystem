@@ -101,9 +101,15 @@
         <span>欢迎，{{ session.username }}！</span>
         <button onclick="location.href='/publish'">发布二手书</button>
         <button onclick="location.href='/logout'">退出登录</button>
+        <button onclick="location.href='/analysis'">数据分析</button>
+        <form action="/search" method="post" style="display: inline-block; margin-left: 20px;">
+    <input type="text" name="search_content" placeholder="输入书名或作者" required>
+    <button type="submit">搜索</button>
+</form>
     {% else %}
         <button onclick="location.href='/register'">用户注册</button>
         <button onclick="location.href='/login'">用户登录</button>
+        <button onclick="location.href='/analysis'">数据分析</button>
     {% endif %}
 </div>
     <hr>

@@ -1,5 +1,10 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 from flask_sqlalchemy import SQLAlchemy
+import pandas as pd
+from io import BytesIO
+import base64
+import matplotlib.pyplot as plt
+plt.switch_backend('Agg')  # 避免在服务器端报错
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'  # 建议改成一个随机字符串
@@ -105,6 +110,71 @@ def logout():
     session.pop('user_id', None)
     session.pop('username', None)
     return redirect(url_for('index'))
+
+@app.route('/analysis')
+def analysis():
+    books = Book.query.all()
+    if not books:
+        return "暂无书籍信息，无法分析"
+
+    data = {
+        'title': [book.title for book in books],
+        'author': [book.author for book in books],
+        'price': [book.price for book in books]
+    }
+    df = pd.DataFrame(data)
+    avg_price = df['price'].mean().round(2)
+    max_price = df['price'].max()
+    min_price = df['price'].min()
+    book_count = len(df)
+
+    # 设置中文字体
+    plt.rcParams['font.sans-serif'] = ['SimHei']   # 用于 Windows
+    plt.rcParams['axes.unicode_minus'] = False
+
+    img = BytesIO()
+    plt.figure(figsize=(8, 5))
+    plt.hist(df['price'], bins=10, color='#4CAF50', edgecolor='black')
+    plt.title('二手书价格分布')
+    plt.xlabel('价格（元）')
+    plt.ylabel('书籍数量')
+    plt.tight_layout()
+    plt.savefig(img, format='png')
+    img.seek(0)
+    plot_url = base64.b64encode(img.getvalue()).decode()
+    plt.close()
+
+    return render_template('analysis.html',
+                           avg_price=avg_price,
+                           max_price=max_price,
+                           min_price=min_price,
+                           book_count=book_count,
+                           plot_url=plot_url)
+
+
+@app.route('/search', methods=['POST'])
+def search():
+
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    key_word = request.form.get('search_content', '').strip()
+
+    if key_word:
+        # 使用 or_ 进行书名或作者模糊匹配
+        from sqlalchemy import or_
+        books = Book.query.filter(
+            or_(
+                Book.title.contains(key_word),
+                Book.author.contains(key_word)
+            )
+        ).all()
+    else:
+        books = []  # 关键词为空时返回空列表
+
+    # 渲染搜索结果页面，传递 books 和关键词
+    return render_template('search_results.html', books=books, keyword=key_word)
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)

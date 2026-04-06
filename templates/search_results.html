@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>搜索结果</title>
+    <style>
+        /* 可以复用首页的样式，或单独定义 */
+        body { font-family: Arial; background: #f0f2f5; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; background: white; border-radius: 12px; padding: 20px; }
+        .book-item { border-left: 5px solid #3498db; margin: 15px 0; padding: 10px; background: #f9f9f9; }
+        .nav { margin-bottom: 20px; }
+        button { background: #3498db; color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="nav">
+        <button onclick="location.href='/'" style="background: #2c3e50;">返回首页</button>
+    </div>
+    <h2>搜索关键词：{{ keyword }}</h2>
+    {% if books %}
+        <p>找到 {{ books|length }} 本书</p>
+        {% for book in books %}
+        <div class="book-item">
+            <strong>{{ book.title }}</strong><br>
+            作者：{{ book.author }} | 价格：¥{{ book.price }}<br>
+            描述：{{ book.description }}<br>
+            发布者：{{ book.user.username }}
+            {% if session.user_id == book.user_id %}
+            <form action="{{ url_for('delete_book', book_id=book.id) }}" method="post" style="display:inline;">
+                <button type="submit" class="delete-btn" onclick="return confirm('确定删除？');">删除</button>
+            </form>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+        <p>没有找到相关书籍。</p>
+    {% endif %}
+</div>
+</body>
+</html>
