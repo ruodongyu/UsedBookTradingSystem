@@ -4,6 +4,8 @@ import pandas as pd
 from io import BytesIO
 import base64
 import matplotlib.pyplot as plt
+from werkzeug.security import generate_password_hash, check_password_hash
+
 plt.switch_backend('Agg')  # 避免在服务器端报错
 
 app = Flask(__name__)
@@ -37,6 +39,7 @@ def register():
         username = request.form['username']
         password = request.form['password']
         confirm_password = request.form['confirm_password']
+        hashed_pw = generate_password_hash(password)
         if password != confirm_password:
             return '两次输入的密码不一致，请重新输入'
         # 检查用户名是否已存在
@@ -45,7 +48,7 @@ def register():
             return '用户名已存在，请重新注册。'
 
         # 创建新用户并存入数据库
-        new_user = User(username=username, password=password)
+        new_user = User(username=username, password=hashed_pw)
         db.session.add(new_user)
         db.session.commit()
 
@@ -59,9 +62,8 @@ def login():
         username = request.form['username']
         password = request.form['password']
         user = User.query.filter_by(username=username).first()
-        if user and user.password == password:  # 暂用明文对比，以后改为哈希
+        if user and check_password_hash(user.password,password):  #哈希密码
             session['user_id'] = user.id
-            session['username'] = user.username
             return redirect(url_for('publish'))  # 跳转到发布书籍页面
         else:
             return '用户名或密码错误，请重新登录。'
@@ -173,8 +175,6 @@ def search():
 
     # 渲染搜索结果页面，传递 books 和关键词
     return render_template('search_results.html', books=books, keyword=key_word)
-
-
 
 if __name__ == '__main__':
     app.run(debug=True)
